@@ -5,9 +5,11 @@
     "DENSITY": 15,
     "FPS": 30,
     "ATTRACTOR_COUNT": 5,
-    "FADE": 0,
-    "RENDER": false,
+    "FADE": 1,
+    "RENDER": true,
     "OUTPUT": "render2.avi",
     "K": 10,
-    "FRAMES": 0
+    "FRAMES": 0,
+    "TEMP_OUTPUT": "frames",
+    "KEEP_FRAMES": false
 }
