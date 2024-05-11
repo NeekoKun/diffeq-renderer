@@ -1,0 +1,13 @@
+{
+    "SIZE": [1920, 1200],
+    "BACKGROUND_COLOR": [1, 11, 25],
+    "POINTS_COLOR": [200, 200, 220],
+    "DENSITY": 15,
+    "FPS": 30,
+    "ATTRACTOR_COUNT": 5,
+    "FADE": 0,
+    "RENDER": false,
+    "OUTPUT": "render2.avi",
+    "K": 10,
+    "FRAMES": 0
+}
