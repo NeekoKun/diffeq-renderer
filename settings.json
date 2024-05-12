@@ -2,6 +2,7 @@
     "SIZE": [1920, 1200],
     "BACKGROUND_COLOR": [1, 11, 25],
     "POINTS_COLOR": [100, 100, 220],
+    "JULY_MODE": true,
     "DENSITY": 15,
     "PADDING": [-100, -100],
     "FPS": 30,

@@ -1,5 +1,7 @@
 import os
+import math
 import pygame
+import colorsys
 import random
 import json
 from attractor import Attractor
@@ -14,6 +16,7 @@ class Simulation:
             self.PADDING = settings["PADDING"]
             self.MARGIN = settings["MARGIN"]
             self.BG_COLOR = settings["BACKGROUND_COLOR"]
+            self.JULY_MODE = settings["JULY_MODE"]
             self.DENSITY = settings["DENSITY"]
             self.FG_COLOR = settings["POINTS_COLOR"]
             self.FPS = settings["FPS"]
@@ -88,11 +91,28 @@ class Simulation:
                 del self.points[key]
                 del self.point_histories[key]
 
+    def get_angle(self, start: list[float], end: list[float]) -> float:
+        distance = math.sqrt((start[0] - end[0])**2 + (start[1] - end[1])**2)
+
+        if end[0] > start[0]:
+            a = 1 + (end[1] - start[1]) / distance
+        else:
+            a = 3 - (end[1] - start[1]) / distance
+
+        return a/4
+
+    def float_to_rgb_hue(self, value: float) -> list[int]:
+        HUE = [value, 0.5, 1]
+        return [255*i for i in colorsys.hls_to_rgb(*HUE)]
 
     def draw_lines(self) -> None:
         for history in self.point_histories.values():
             for start, end in zip(history, history[1:]):
-                pygame.draw.line(self.screen, self.FG_COLOR, (int(start[0] + self.WIDTH//2), int(start[1] + self.HEIGHT//2)), (int(end[0] + self.WIDTH//2), int(end[1] + self.HEIGHT//2)), self.POINT_RADIUS)
+                if self.JULY_MODE:
+                    pygame.draw.line(self.screen, self.float_to_rgb_hue(self.get_angle(start, end)), (int(start[0] + self.WIDTH//2), int(start[1] + self.HEIGHT//2)), (int(end[0] + self.WIDTH//2), int(end[1] + self.HEIGHT//2)), self.POINT_RADIUS)
+                else:
+                    pygame.draw.line(self.screen, self.FG_COLOR, (int(start[0] + self.WIDTH//2), int(start[1] + self.HEIGHT//2)), (int(end[0] + self.WIDTH//2), int(end[1] + self.HEIGHT//2)), self.POINT_RADIUS)
+
 
     def run(self) -> None:
         self.screen.fill(self.BG_COLOR)
