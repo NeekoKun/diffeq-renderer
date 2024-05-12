@@ -10,7 +10,7 @@
     "RENDER": false,
     "OUTPUT": "render2.avi",
     "K": 10,
-    "FRAMES": 0,
+    "FRAMES": 1000,
     "TEMP_OUTPUT": "frames",
     "KEEP_FRAMES": false
 }
