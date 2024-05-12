@@ -1,158 +1,84 @@
 import os
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
-
-from attractor import Attractor
-import logging
 import pygame
 import random
-import time
-import tqdm
 import json
-import cv2
+from attractor import Attractor
 
-start_time = time.time()
+class Simulation:
+    def __init__(self):
+        # Load settings
+        with open("settings.json") as f:
+            settings = json.load(f)
+            self.SIZE = settings["SIZE"]
+            self.WIDTH, self.HEIGHT = self.SIZE
+            self.BG_COLOR = settings["BACKGROUND_COLOR"]
+            self.DENSITY = settings["DENSITY"]
+            self.FG_COLOR = settings["POINTS_COLOR"]
+            self.FPS = settings["FPS"]
+            self.ATTRACTORS = settings["ATTRACTOR_COUNT"]
+            self.FADE = settings["FADE"]
+            self.K = settings["K"]
+            self.POINT_HISTORY = 5
 
-with open("settings.json") as f:
-    logging.debug("Loading application settings...")
-    settings = json.load(f)
+        # Initialize Pygame
+        pygame.init()
+        self.clock = pygame.time.Clock()
+        self.screen = pygame.display.set_mode(self.SIZE)
+        pygame.display.set_caption("Dynamic Attractor Simulation")
+        pygame.mouse.set_visible(True)
 
-    SIZE = settings["SIZE"]
-    WIDTH = SIZE[0]
-    HEIGHT = SIZE[1]
-    BG_COLOR = settings["BACKGROUND_COLOR"]
-    DENSITY = settings["DENSITY"]
-    FG_COLOR = settings["POINTS_COLOR"]
-    FPS = settings["FPS"]
-    ATTRACTORS = settings["ATTRACTOR_COUNT"]
-    FADE = settings["FADE"]
-    K = settings["K"]
-    RENDER = settings["RENDER"]
-    OUTPUT = settings["OUTPUT"]
-    FRAMES = settings["FRAMES"]
-    FRAMES_DIR = settings["TEMP_OUTPUT"]
-    KEEP_FRAMES = settings["KEEP_FRAMES"]
+        # Simulation settings
+        self.attractors = [Attractor(random.uniform(10, 30), random.uniform(-self.WIDTH/2, self.WIDTH/2), random.uniform(-self.HEIGHT/2, self.HEIGHT/2), random.choice([-1, 1])) for _ in range(self.ATTRACTORS)]
+        self.points = {i: [random.randint(-self.WIDTH//2 - 200, self.WIDTH//2 + 200), random.randint(-self.HEIGHT//2 - 200, self.HEIGHT//2 + 200)] for i in range(int((self.WIDTH + 400) * (self.HEIGHT + 400) / (self.DENSITY**2)))}
+        self.point_histories = {key: [value] for key, value in self.points.items()}
+        self.dimming_overlay = pygame.Surface(self.SIZE, pygame.SRCALPHA)
+        self.dimming_overlay.fill((self.BG_COLOR[0], self.BG_COLOR[1], self.BG_COLOR[2], self.FADE))
 
-    for i in settings:
-        logging.info(i+":", settings[i])
-    
-    logging.debug("Settings loaded succesfully")
+    def differential(self, x, y):
+        dx, dy = 0, 0
+        for attractor in self.attractors:
 
-##############
-## SETTINGS ##
-##############
+            m = attractor.sign * attractor.q / (((attractor.x - x)**2 + (attractor.y - y)**2) + 1)
+            if (x - attractor.x)**2 + (y - attractor.y)**2 < 16:  # Slightly larger radius for smoother visuals
+                return None  # None indicates collision
+            dx += m * (x - attractor.x)
+            dy += m * (y - attractor.y)
+        return x + self.K * dx, y + self.K * dy  # Increase the effect of K
 
-# Pygame settings
-clock = pygame.time.Clock()
-screen = pygame.display.set_mode(SIZE)
-pygame.display.init()
-pygame.mouse.set_visible(True)
-counter = 0
+    def update_point_histories(self):
+        for key, point in list(self.points.items()):
+            new_pos = self.differential(*point)
+            if new_pos is None:
+                # Clear history and reassign to a new random location
+                new_point = [random.randint(-self.WIDTH//2 - 200, self.WIDTH//2 + 200), random.randint(-self.HEIGHT//2 - 200, self.HEIGHT//2 + 200)]
+                self.points[key] = new_point
+                self.point_histories[key] = [new_point]
+            else:
+                # Always append new position to history for debugging
+                self.point_histories[key].append(new_pos)
+                self.points[key] = new_pos  # Ensure the main points dictionary is updated
 
-# Simulation settings
-attractors = [Attractor(random.uniform(10, 30), random.uniform(-WIDTH/2, WIDTH/2), random.uniform(-HEIGHT/2, HEIGHT/2), random.choice([-1, 1])) for _ in range(ATTRACTORS)]
-points_count = int((WIDTH + 400) * ( HEIGHT + 400 ) / (DENSITY**2))
+    def draw_lines(self):
+        for history in self.point_histories.values():
+            for start, end in zip(history, history[1:]):
+                pygame.draw.line(self.screen, self.FG_COLOR, (int(start[0] + self.WIDTH//2), int(start[1] + self.HEIGHT//2)), (int(end[0] + self.WIDTH//2), int(end[1] + self.HEIGHT//2)), 2)
 
-points = [[random.randint(int(-WIDTH/2 - 200), int(WIDTH/2 + 200)), random.randint(int(-HEIGHT/2 - 200), int(HEIGHT/2 + 200))] for _ in range(points_count)]
+    def run(self):
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type is pygame.QUIT:
+                    running = False
 
-running = True
+            self.screen.blit(self.dimming_overlay, (0, 0))
+            self.update_point_histories()
+            self.draw_lines()
+            pygame.display.flip()
+            self.clock.tick(self.FPS)
 
-screen.fill(BG_COLOR)
+        pygame.quit()
 
-# Thank you reddit
-dimming_overlay: pygame.Surface = pygame.Surface(SIZE, pygame.SRCALPHA).convert_alpha()
-dimming_overlay.fill(pygame.Color(BG_COLOR[0], BG_COLOR[1], BG_COLOR[2], FADE))
-
-################
-## MATH STUFF ##
-################
-
-def differential(x, y) -> list[int]:
-    logging.info("Starting differential equation at", x, y)
-    dx = dy = 0
-
-    for i in attractors:
-        m = i.sign * i.q / ((i.x - x)*(i.x - x) + (i.y - y)*(i.y - y))
-        dx += m * (x - i.x)
-        dy += m * (y - i.y)
-
-        if abs(x - i.x) < 3 and abs(y - i.y) < 3:
-            logging.debug("Point at", x, y, "collided with attractor at", i.x, i.y)
-            return i.x, i.y
-
-    logging.info("Equation returned", dx, dy)
-    return x + K * dx, y + K * dy
-
-def dim():
-    screen.blit(dimming_overlay, (0, 0))
-
-def eval_diff():
-    for i, p in enumerate(points):
-        screen.set_at((round(p[0] + WIDTH/2), round(p[1] + HEIGHT/2)), FG_COLOR)
-        try:
-            points[i] = differential(p[0], p[1])
-        except ZeroDivisionError:
-            logging.debug("Removed point", p[0], p[1], "upon collision")
-            points.remove(p)
-
-
-###############
-## MAIN LOOP ##
-###############
-
-if not RENDER:
-    logging.debug("Application not set to render: frames will not be saved")
-
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-    dim()
-
-    eval_diff()
-
-    clock.tick(FPS)
-
-    pygame.display.flip()
-
-    # Rendering to video
-    if RENDER:
-        pygame.image.save(screen, f"{FRAMES_DIR}/frame_{counter}.png")
-
-    if (counter >= FRAMES) and (FRAMES != 0):
-        logging.debug(f"Target frames rendered at {time.time() - start_time}")
-        running = False
-
-    counter += 1
-    logging.info("Frame", counter, "rendered")
-
-logging.debug(f"Terminating pygame at {time.time() - start_time}")
-pygame.quit()
-
-###############
-## RENDERING ##
-###############
-
-if RENDER:
-    logging.debug("Compressing frames to video...")
-    # Collecting the individual frames
-    image_files = [f"frame_{i}.png" for i in range(counter)]
-
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    video_writer = cv2.VideoWriter(OUTPUT, fourcc, FPS, SIZE)
-
-    for image_file in tqdm.tqdm(image_files):
-        image_path = os.path.join(FRAMES_DIR, image_file)
-        image = cv2.imread(image_path)
-        video_writer.write(image)
-
-    video_writer.release()
-    logging.debug("Rendering completed succesfully")
-
-    if not KEEP_FRAMES:
-        logging.debug("Deleting frame images")
-        for i in tqdm.tqdm(image_files):
-            os.remove(os.path.join(FRAMES_DIR, i))
-        logging.debug("Frames deleted succesfully")
-
-logging.debug("Program quitting")
+if __name__ == "__main__":
+    os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+    sim = Simulation()
+    sim.run()
