@@ -5,9 +5,12 @@
     "DENSITY": 15,
     "PADDING": [-100, -100],
     "FPS": 30,
-    "ATTRACTOR_COUNT": 5,
+    "ATTRACTOR_COUNT": 10,
     "FADE": 1,
     "POINT_HISTORY": 2,
+    "RESPAWN_POINTS": true,
+    "LIMIT_DISTANCE": true,
+    "MARGIN": [100, 100],
     "REMOVAL_RADIUS": 16,
     "POINT_RADIUS": 1,
     "RENDER": false,
@@ -15,5 +18,6 @@
     "K": 10,
     "FRAMES": 1000,
     "TEMP_OUTPUT": "frames",
-    "KEEP_FRAMES": false
+    "KEEP_FRAMES": false,
+    "FULLSCREEN": true
 }

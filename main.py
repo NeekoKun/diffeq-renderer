@@ -12,6 +12,7 @@ class Simulation:
             self.SIZE = settings["SIZE"]
             self.WIDTH, self.HEIGHT = self.SIZE
             self.PADDING = settings["PADDING"]
+            self.MARGIN = settings["MARGIN"]
             self.BG_COLOR = settings["BACKGROUND_COLOR"]
             self.DENSITY = settings["DENSITY"]
             self.FG_COLOR = settings["POINTS_COLOR"]
@@ -22,11 +23,17 @@ class Simulation:
             self.POINT_HISTORY = settings["POINT_HISTORY"]
             self.REMOVAL_RADIUS = settings["REMOVAL_RADIUS"]
             self.POINT_RADIUS = settings["POINT_RADIUS"]
+            self.RESPAWN = settings["RESPAWN_POINTS"]
+            self.LIMIT_DISTANCE = settings["LIMIT_DISTANCE"]
+            self.FULLSCREEN = settings["FULLSCREEN"]
 
         # Initialize Pygame
         pygame.init()
         self.clock = pygame.time.Clock()
-        self.screen = pygame.display.set_mode(self.SIZE)
+        if self.FULLSCREEN:
+            self.screen = pygame.display.set_mode(self.SIZE, pygame.FULLSCREEN)
+        else:
+            self.screen = pygame.display.set_mode(self.SIZE)
         pygame.display.set_caption("Dynamic Attractor Simulation")
         pygame.mouse.set_visible(True)
 
@@ -42,8 +49,13 @@ class Simulation:
 
         for attractor in self.attractors:
             distance_squared = (x - attractor.x)**2 + (y - attractor.y)**2
+            if distance_squared == 0:
+                return None
             if distance_squared < self.REMOVAL_RADIUS**2:
-                return None  # Point is within the removal radius of an attractor
+                if attractor.sign == -1:
+                    return attractor.x, attractor.y  # Point is within the removal radius of an attractor, might as well count it in the middle to remove artifacts
+                if attractor.sign == 1:
+                    continue                         # Dumb physics thing for which a point inside a sphere doesn't feel any force to a particular direction
             m = attractor.sign * attractor.q / (distance_squared + 1)
             dx += m * (x - attractor.x)
             dy += m * (y - attractor.y)
@@ -54,7 +66,7 @@ class Simulation:
         to_remove = []
         for key, point in list(self.points.items()):
             new_pos = self.differential(*point)
-            if new_pos is None:
+            if (new_pos is None) or (self.LIMIT_DISTANCE and ((abs(new_pos[0]) > self.WIDTH/2 + self.MARGIN[0]) or (abs(new_pos[1]) > self.HEIGHT/2 + self.MARGIN[1]))):
                 # Mark the point for removal
                 to_remove.append(key)
             else:
@@ -66,8 +78,16 @@ class Simulation:
 
         # Remove the marked points
         for key in to_remove:
-            del self.points[key]
-            del self.point_histories[key]
+            if self.RESPAWN:
+                # Respown disappeared points
+                self.points[key] = [random.randint((-self.WIDTH - self.PADDING[0])//2, (self.WIDTH + self.PADDING[0])//2), random.randint((-self.HEIGHT - self.PADDING[1])//2, (self.HEIGHT + self.PADDING[1])//2)]
+                self.point_histories[key] = [(random.randint((-self.WIDTH - self.PADDING[0])//2, (self.WIDTH + self.PADDING[0])//2), random.randint((-self.HEIGHT - self.PADDING[1])//2, (self.HEIGHT + self.PADDING[1])//2)), (random.randint((-self.WIDTH - self.PADDING[0])//2, (self.WIDTH + self.PADDING[0])//2), random.randint((-self.HEIGHT - self.PADDING[1])//2, (self.HEIGHT + self.PADDING[1])//2))]
+                self.point_histories[key].pop(0)
+                self.point_histories[key].pop(0)
+            else:
+                del self.points[key]
+                del self.point_histories[key]
+
 
     def draw_lines(self) -> None:
         for history in self.point_histories.values():
