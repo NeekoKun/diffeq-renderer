@@ -19,6 +19,7 @@ with open("settings.json") as f:
     SIZE = settings["SIZE"]
     WIDTH = SIZE[0]
     HEIGHT = SIZE[1]
+    PADDING = settings["PADDING"]
     BG_COLOR = settings["BACKGROUND_COLOR"]
     DENSITY = settings["DENSITY"]
     FG_COLOR = settings["POINTS_COLOR"]
@@ -50,9 +51,9 @@ counter = 0
 
 # Simulation settings
 attractors = [Attractor(random.uniform(10, 30), random.uniform(-WIDTH/2, WIDTH/2), random.uniform(-HEIGHT/2, HEIGHT/2), random.choice([-1, 1])) for _ in range(ATTRACTORS)]
-points_count = int((WIDTH + 400) * ( HEIGHT + 400 ) / (DENSITY**2))
+points_count = int((WIDTH + PADDING[0]*2) * ( HEIGHT + PADDING[1]*2 ) / (DENSITY**2))
 
-points = [[random.randint(int(-WIDTH/2 - 200), int(WIDTH/2 + 200)), random.randint(int(-HEIGHT/2 - 200), int(HEIGHT/2 + 200))] for _ in range(points_count)]
+points = [[random.randint(int(-WIDTH/2 - PADDING[0]), int(WIDTH/2 + PADDING[0])), random.randint(int(-HEIGHT/2 - PADDING[1]), int(HEIGHT/2 + PADDING[1]))] for _ in range(points_count)]
 
 running = True
 
