@@ -5,12 +5,13 @@ import json
 from attractor import Attractor
 
 class Simulation:
-    def __init__(self):
+    def __init__(self) -> None:
         # Load settings
         with open("settings.json") as f:
             settings = json.load(f)
             self.SIZE = settings["SIZE"]
             self.WIDTH, self.HEIGHT = self.SIZE
+            self.PADDING = settings["PADDING"]
             self.BG_COLOR = settings["BACKGROUND_COLOR"]
             self.DENSITY = settings["DENSITY"]
             self.FG_COLOR = settings["POINTS_COLOR"]
@@ -18,8 +19,9 @@ class Simulation:
             self.ATTRACTORS = settings["ATTRACTOR_COUNT"]
             self.FADE = settings["FADE"]
             self.K = settings["K"]
-            self.POINT_HISTORY = 2
-            self.REMOVAL_RADIUS = 16
+            self.POINT_HISTORY = settings["POINT_HISTORY"]
+            self.REMOVAL_RADIUS = settings["REMOVAL_RADIUS"]
+            self.POINT_RADIUS = settings["POINT_RADIUS"]
 
         # Initialize Pygame
         pygame.init()
@@ -30,13 +32,14 @@ class Simulation:
 
         # Simulation settings
         self.attractors = [Attractor(random.uniform(10, 30), random.uniform(-self.WIDTH/2, self.WIDTH/2), random.uniform(-self.HEIGHT/2, self.HEIGHT/2), random.choice([-1, 1])) for _ in range(self.ATTRACTORS)]
-        self.points = {i: [random.randint(-self.WIDTH//2 - 200, self.WIDTH//2 + 200), random.randint(-self.HEIGHT//2 - 200, self.HEIGHT//2 + 200)] for i in range(int((self.WIDTH + 400) * (self.HEIGHT + 400) / (self.DENSITY**2)))}
+        self.points = {i: [random.randint((-self.WIDTH - self.PADDING[0])//2, (self.WIDTH + self.PADDING[0])//2), random.randint((-self.HEIGHT - self.PADDING[1])//2, (self.HEIGHT + self.PADDING[1])//2)] for i in range(int((self.WIDTH + self.PADDING[0]) * (self.HEIGHT + self.PADDING[1]) / (self.DENSITY**2)))}
         self.point_histories = {key: [value] for key, value in self.points.items()}
         self.dimming_overlay = pygame.Surface(self.SIZE, pygame.SRCALPHA)
         self.dimming_overlay.fill((self.BG_COLOR[0], self.BG_COLOR[1], self.BG_COLOR[2], self.FADE))
 
-    def differential(self, x, y):
+    def differential(self, x: float, y: float) -> list[float]:
         dx, dy = 0, 0
+
         for attractor in self.attractors:
             distance_squared = (x - attractor.x)**2 + (y - attractor.y)**2
             if distance_squared < self.REMOVAL_RADIUS**2:
@@ -44,9 +47,10 @@ class Simulation:
             m = attractor.sign * attractor.q / (distance_squared + 1)
             dx += m * (x - attractor.x)
             dy += m * (y - attractor.y)
+
         return x + self.K * dx, y + self.K * dy
 
-    def update_point_histories(self):
+    def update_point_histories(self) -> None:
         to_remove = []
         for key, point in list(self.points.items()):
             new_pos = self.differential(*point)
@@ -65,12 +69,14 @@ class Simulation:
             del self.points[key]
             del self.point_histories[key]
 
-    def draw_lines(self):
+    def draw_lines(self) -> None:
         for history in self.point_histories.values():
             for start, end in zip(history, history[1:]):
-                pygame.draw.line(self.screen, self.FG_COLOR, (int(start[0] + self.WIDTH//2), int(start[1] + self.HEIGHT//2)), (int(end[0] + self.WIDTH//2), int(end[1] + self.HEIGHT//2)), 2)
+                pygame.draw.line(self.screen, self.FG_COLOR, (int(start[0] + self.WIDTH//2), int(start[1] + self.HEIGHT//2)), (int(end[0] + self.WIDTH//2), int(end[1] + self.HEIGHT//2)), self.POINT_RADIUS)
 
-    def run(self):
+    def run(self) -> None:
+        self.screen.fill(self.BG_COLOR)
+
         running = True
         while running:
             for event in pygame.event.get():
