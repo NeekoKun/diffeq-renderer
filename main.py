@@ -18,7 +18,8 @@ class Simulation:
             self.ATTRACTORS = settings["ATTRACTOR_COUNT"]
             self.FADE = settings["FADE"]
             self.K = settings["K"]
-            self.POINT_HISTORY = 5
+            self.POINT_HISTORY = 2
+            self.REMOVAL_RADIUS = 16
 
         # Initialize Pygame
         pygame.init()
@@ -37,26 +38,32 @@ class Simulation:
     def differential(self, x, y):
         dx, dy = 0, 0
         for attractor in self.attractors:
-
-            m = attractor.sign * attractor.q / (((attractor.x - x)**2 + (attractor.y - y)**2) + 1)
-            if (x - attractor.x)**2 + (y - attractor.y)**2 < 16:  # Slightly larger radius for smoother visuals
-                return None  # None indicates collision
+            distance_squared = (x - attractor.x)**2 + (y - attractor.y)**2
+            if distance_squared < self.REMOVAL_RADIUS**2:
+                return None  # Point is within the removal radius of an attractor
+            m = attractor.sign * attractor.q / (distance_squared + 1)
             dx += m * (x - attractor.x)
             dy += m * (y - attractor.y)
-        return x + self.K * dx, y + self.K * dy  # Increase the effect of K
+        return x + self.K * dx, y + self.K * dy
 
     def update_point_histories(self):
+        to_remove = []
         for key, point in list(self.points.items()):
             new_pos = self.differential(*point)
             if new_pos is None:
-                # Clear history and reassign to a new random location
-                new_point = [random.randint(-self.WIDTH//2 - 200, self.WIDTH//2 + 200), random.randint(-self.HEIGHT//2 - 200, self.HEIGHT//2 + 200)]
-                self.points[key] = new_point
-                self.point_histories[key] = [new_point]
+                # Mark the point for removal
+                to_remove.append(key)
             else:
-                # Always append new position to history for debugging
+                # Append new position to history, ensuring history does not exceed specified length
+                if len(self.point_histories[key]) >= self.POINT_HISTORY:
+                    self.point_histories[key].pop(0)  # Remove the oldest position
                 self.point_histories[key].append(new_pos)
-                self.points[key] = new_pos  # Ensure the main points dictionary is updated
+                self.points[key] = new_pos  # Update the main points dictionary
+
+        # Remove the marked points
+        for key in to_remove:
+            del self.points[key]
+            del self.point_histories[key]
 
     def draw_lines(self):
         for history in self.point_histories.values():
