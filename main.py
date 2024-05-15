@@ -47,32 +47,35 @@ class Simulation:
         self.dimming_overlay = pygame.Surface(self.SIZE, pygame.SRCALPHA)
         self.dimming_overlay.fill((self.BG_COLOR[0], self.BG_COLOR[1], self.BG_COLOR[2], self.FADE))
 
+        self.will_remove = []
+
     def differential(self, x: float, y: float) -> list[float]:
         dx, dy = 0, 0
 
         for attractor in self.attractors:
             distance_squared = (x - attractor.x)**2 + (y - attractor.y)**2
             if distance_squared == 0:
-                return None
+                return None, None
             if distance_squared < self.REMOVAL_RADIUS**2:
                 if attractor.sign == -1:
-                    return attractor.x, attractor.y  # Point is within the removal radius of an attractor, might as well count it in the middle to remove artifacts
-                if attractor.sign == 1:
-                    continue                         # Dumb physics thing for which a point inside a sphere doesn't feel any force to a particular direction
+                    return 'collided', (attractor.x, attractor.y)  # Point is within the removal radius of an attractor, might as well count it in the middle to remove artifacts
             m = attractor.sign * attractor.q / (distance_squared + 1)
             dx += m * (x - attractor.x)
             dy += m * (y - attractor.y)
 
-        return x + self.K * dx, y + self.K * dy
+        return 'ok', (x + self.K * dx, y + self.K * dy)
 
     def update_point_histories(self) -> None:
-        to_remove = []
+        self.to_remove = self.will_remove
+        self.will_remove = []
         for key, point in list(self.points.items()):
-            new_pos = self.differential(*point)
+            result, new_pos = self.differential(*point)
             if (new_pos is None) or (self.LIMIT_DISTANCE and ((abs(new_pos[0]) > self.WIDTH/2 + self.MARGIN[0]) or (abs(new_pos[1]) > self.HEIGHT/2 + self.MARGIN[1]))):
                 # Mark the point for removal
-                to_remove.append(key)
+                self.to_remove.append(key)
             else:
+                if result is 'collided':
+                    self.will_remove.append(key)
                 # Append new position to history, ensuring history does not exceed specified length
                 if len(self.point_histories[key]) >= self.POINT_HISTORY:
                     self.point_histories[key].pop(0)  # Remove the oldest position
@@ -80,7 +83,7 @@ class Simulation:
                 self.points[key] = new_pos  # Update the main points dictionary
 
         # Remove the marked points
-        for key in to_remove:
+        for key in self.to_remove:
             if self.RESPAWN:
                 # Respown disappeared points
                 self.points[key] = [random.randint((-self.WIDTH - self.PADDING[0])//2, (self.WIDTH + self.PADDING[0])//2), random.randint((-self.HEIGHT - self.PADDING[1])//2, (self.HEIGHT + self.PADDING[1])//2)]
@@ -122,6 +125,9 @@ class Simulation:
             for event in pygame.event.get():
                 if event.type is pygame.QUIT:
                     running = False
+
+            for attractor in self.attractors:
+                attractor.move(1, -2)
 
             self.screen.blit(self.dimming_overlay, (0, 0))
             self.update_point_histories()

@@ -4,3 +4,7 @@ class Attractor:
         self.x = x
         self.y = y
         self.sign = sign
+
+    def move(self, dx, dy):
+        self.x += dx
+        self.y += dy
