@@ -46,6 +46,8 @@ class Simulation:
         self.point_histories = {key: [value] for key, value in self.points.items()}
         self.dimming_overlay = pygame.Surface(self.SIZE, pygame.SRCALPHA)
         self.dimming_overlay.fill((self.BG_COLOR[0], self.BG_COLOR[1], self.BG_COLOR[2], self.FADE))
+        self.traced_points = []
+        self.deleted_traced_points = []
 
     def differential(self, x: float, y: float) -> list[float]:
         dx, dy = 0, 0
@@ -67,6 +69,7 @@ class Simulation:
 
     def update_point_histories(self) -> None:
         to_remove = []
+        to_stop_tracing = []
         for key, point in list(self.points.items()):
             new_pos = self.differential(*point)
             if (new_pos is None) or (self.LIMIT_DISTANCE and ((abs(new_pos[0]) > self.WIDTH/2 + self.MARGIN[0]) or (abs(new_pos[1]) > self.HEIGHT/2 + self.MARGIN[1]))):
@@ -78,6 +81,18 @@ class Simulation:
                     self.point_histories[key].pop(0)  # Remove the oldest position
                 self.point_histories[key].append(new_pos)
                 self.points[key] = new_pos  # Update the main points dictionary
+        
+        # Traced point
+        for point in self.traced_points:
+            new_pos = self.differential(*point[-1])
+            if (new_pos is None) or (self.LIMIT_DISTANCE and ((abs(new_pos[0]) > self.WIDTH/2 + self.MARGIN[0]) or (abs(new_pos[1]) > self.HEIGHT/2 + self.MARGIN[1]))):
+                to_stop_tracing.append(point)
+            else:
+                self.traced_points[self.traced_points.index(point)].append(new_pos)
+
+        for point in to_stop_tracing:
+            self.deleted_traced_points.append(point)
+            self.traced_points.remove(point)
 
         # Remove the marked points
         for key in to_remove:
@@ -112,6 +127,13 @@ class Simulation:
                     pygame.draw.line(self.screen, self.float_to_rgb_hue(self.get_angle(start, end)), (int(start[0] + self.WIDTH//2), int(start[1] + self.HEIGHT//2)), (int(end[0] + self.WIDTH//2), int(end[1] + self.HEIGHT//2)), self.POINT_RADIUS)
                 else:
                     pygame.draw.line(self.screen, self.FG_COLOR, (int(start[0] + self.WIDTH//2), int(start[1] + self.HEIGHT//2)), (int(end[0] + self.WIDTH//2), int(end[1] + self.HEIGHT//2)), self.POINT_RADIUS)
+        for point in self.traced_points:
+            for i, _ in enumerate(point[1:]):
+                pygame.draw.line(self.screen, (255, 255, 255), (int(point[i][0] + self.WIDTH//2), int(point[i][1] + self.HEIGHT//2)), (int(point[i+1][0] + self.WIDTH//2), int(point[i+1][1] + self.HEIGHT//2)), 3) # TODO: add simulation settings
+
+        for point in self.deleted_traced_points:
+            for i, _ in enumerate(point[1:]):
+                pygame.draw.line(self.screen, (255, 255, 255), (int(point[i][0] + self.WIDTH//2), int(point[i][1] + self.HEIGHT//2)), (int(point[i+1][0] + self.WIDTH//2), int(point[i+1][1] + self.HEIGHT//2)), 3) # TODO: add simulation settings
 
 
     def run(self) -> None:
@@ -120,8 +142,11 @@ class Simulation:
         running = True
         while running:
             for event in pygame.event.get():
-                if event.type is pygame.QUIT:
+                if event.type == pygame.QUIT:
                     running = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    coors = pygame.mouse.get_pos()
+                    self.traced_points.append([(coors[0]-self.WIDTH//2, coors[1]-self.HEIGHT//2)])
 
             self.screen.blit(self.dimming_overlay, (0, 0))
             self.update_point_histories()
