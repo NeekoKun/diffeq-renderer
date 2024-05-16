@@ -45,9 +45,6 @@ class Simulation:
 
         # Simulation settings
         self.attractors = [Attractor(random.uniform(10, 30), random.uniform(-self.WIDTH/2, self.WIDTH/2), random.uniform(-self.HEIGHT/2, self.HEIGHT/2), random.choice([-1, 1])) for _ in range(self.ATTRACTORS)]
-        self.attractors = []
-        self.attractors.append(Attractor(20, -200, 0, 1))
-        self.attractors.append(Attractor(20, 200, 0, -1))
         self.points = {i: [random.randint((-self.WIDTH - self.PADDING[0])//2, (self.WIDTH + self.PADDING[0])//2), random.randint((-self.HEIGHT - self.PADDING[1])//2, (self.HEIGHT + self.PADDING[1])//2)] for i in range(int((self.WIDTH + self.PADDING[0]) * (self.HEIGHT + self.PADDING[1]) / (self.DENSITY**2)))}
         self.point_histories = {key: [value] for key, value in self.points.items()}
         self.dimming_overlay = pygame.Surface(self.SIZE, pygame.SRCALPHA)
@@ -163,9 +160,6 @@ class Simulation:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     coors = pygame.mouse.get_pos()
                     self.traced_points.append([(coors[0]-self.WIDTH//2, coors[1]-self.HEIGHT//2)])
-
-            for attractor in self.attractors:
-                attractor.rotate(5)
 
             self.screen.blit(self.dimming_overlay, (0, 0))
             self.update_point_histories()
