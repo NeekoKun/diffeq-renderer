@@ -46,9 +46,9 @@ class Simulation:
         # Simulation settings
         self.attractors = [Attractor(random.uniform(10, 30), random.uniform(-self.WIDTH/2, self.WIDTH/2), random.uniform(-self.HEIGHT/2, self.HEIGHT/2), random.choice([-1, 1])) for _ in range(self.ATTRACTORS)]
         self.attractors = []
-        self.attractors.append(Attractor(20, -200, 0, 1))
-        self.attractors.append(Attractor(20, 200, 0, -1))
-        self.points = {i: [random.randint((-self.WIDTH - self.PADDING[0])//2, (self.WIDTH + self.PADDING[0])//2), random.randint((-self.HEIGHT - self.PADDING[1])//2, (self.HEIGHT + self.PADDING[1])//2)] for i in range(int((self.WIDTH + self.PADDING[0]) * (self.HEIGHT + self.PADDING[1]) / (self.DENSITY**2)))}
+        self.attractors.append(Attractor(20, -100, 0, 1))
+        self.attractors.append(Attractor(20, 100, 0, -1))
+        self.points = {i: [random.randint(-(self.WIDTH + self.PADDING[0])//2, (self.WIDTH + self.PADDING[0])//2), random.randint(-(self.HEIGHT + self.PADDING[1])//2, (self.HEIGHT + self.PADDING[1])//2)] for i in range(1)}#int((self.WIDTH + self.PADDING[0]) * (self.HEIGHT + self.PADDING[1]) / (self.DENSITY**2)))}
         self.point_histories = {key: [value] for key, value in self.points.items()}
         self.dimming_overlay = pygame.Surface(self.SIZE, pygame.SRCALPHA)
         self.dimming_overlay.fill((self.BG_COLOR[0], self.BG_COLOR[1], self.BG_COLOR[2], self.FADE))
@@ -102,7 +102,7 @@ class Simulation:
             result, new_pos = self.differential(*point)
             if (new_pos is None) or (self.LIMIT_DISTANCE and ((abs(new_pos[0]) > self.WIDTH/2 + self.MARGIN[0]) or (abs(new_pos[1]) > self.HEIGHT/2 + self.MARGIN[1]))):
                 # Mark the point for removal
-                self.to_remove.append(key)
+                self.will_remove.append(key)
             else:
                 if result is 'collided':
                     self.will_remove.append(key)
@@ -119,7 +119,7 @@ class Simulation:
                 self.to_stop_tracing.append(point)
             else:
                 self.traced_points[self.traced_points.index(point)].append(new_pos)
-                if result is 'collided':
+                if result == 'collided':
                     self.will_stop_tracing.append(point)
                     self.will_stop_tracing[-1].append(new_pos)
                     
@@ -163,9 +163,6 @@ class Simulation:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     coors = pygame.mouse.get_pos()
                     self.traced_points.append([(coors[0]-self.WIDTH//2, coors[1]-self.HEIGHT//2)])
-
-            for attractor in self.attractors:
-                attractor.rotate(5)
 
             self.screen.blit(self.dimming_overlay, (0, 0))
             self.update_point_histories()
