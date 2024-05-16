@@ -16,9 +16,11 @@ class Simulation:
             self.PADDING = settings["PADDING"]
             self.MARGIN = settings["MARGIN"]
             self.BG_COLOR = settings["BACKGROUND_COLOR"]
+            self.FG_COLOR = settings["POINTS_COLOR"]
+            self.TRACE_COLOR = settings["TRACE_COLOR"]
+            self.EXPIRED_TRACE_COLOR = settings["EXPIRED_TRACE_COLOR"]
             self.JULY_MODE = settings["JULY_MODE"]
             self.DENSITY = settings["DENSITY"]
-            self.FG_COLOR = settings["POINTS_COLOR"]
             self.FPS = settings["FPS"]
             self.ATTRACTORS = settings["ATTRACTOR_COUNT"]
             self.FADE = settings["FADE"]
@@ -29,6 +31,7 @@ class Simulation:
             self.RESPAWN = settings["RESPAWN_POINTS"]
             self.LIMIT_DISTANCE = settings["LIMIT_DISTANCE"]
             self.FULLSCREEN = settings["FULLSCREEN"]
+            self.TRACE_RADIUS = settings["TRACE_RADIUS"]
 
         # Initialize Pygame
         pygame.init()
@@ -129,11 +132,11 @@ class Simulation:
                     pygame.draw.line(self.screen, self.FG_COLOR, (int(start[0] + self.WIDTH//2), int(start[1] + self.HEIGHT//2)), (int(end[0] + self.WIDTH//2), int(end[1] + self.HEIGHT//2)), self.POINT_RADIUS)
         for point in self.traced_points:
             for i, _ in enumerate(point[1:]):
-                pygame.draw.line(self.screen, (255, 255, 255), (int(point[i][0] + self.WIDTH//2), int(point[i][1] + self.HEIGHT//2)), (int(point[i+1][0] + self.WIDTH//2), int(point[i+1][1] + self.HEIGHT//2)), 3) # TODO: add simulation settings
+                pygame.draw.line(self.screen, self.TRACE_COLOR, (int(point[i][0] + self.WIDTH//2), int(point[i][1] + self.HEIGHT//2)), (int(point[i+1][0] + self.WIDTH//2), int(point[i+1][1] + self.HEIGHT//2)), self.TRACE_RADIUS) # TODO: add simulation settings
 
         for point in self.deleted_traced_points:
             for i, _ in enumerate(point[1:]):
-                pygame.draw.line(self.screen, (255, 255, 255), (int(point[i][0] + self.WIDTH//2), int(point[i][1] + self.HEIGHT//2)), (int(point[i+1][0] + self.WIDTH//2), int(point[i+1][1] + self.HEIGHT//2)), 3) # TODO: add simulation settings
+                pygame.draw.line(self.screen, self.EXPIRED_TRACE_COLOR, (int(point[i][0] + self.WIDTH//2), int(point[i][1] + self.HEIGHT//2)), (int(point[i+1][0] + self.WIDTH//2), int(point[i+1][1] + self.HEIGHT//2)), self.TRACE_RADIUS) # TODO: add simulation settings
 
 
     def run(self) -> None:
