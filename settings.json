@@ -1,5 +1,5 @@
 {
-    "SIZE": [1920, 1200],
+    "SIZE": [500, 500],
     "DENSITY": 15,
     "PADDING": [-100, -100],
     "FPS": 60,
@@ -15,7 +15,7 @@
     "JULY_MODE": true,
     "RESPAWN_POINTS": true,
     "LIMIT_DISTANCE": true,
-    "MARGIN": [-100, -100],
+    "MARGIN": [100, 100],
     "REMOVAL_RADIUS": 16,
     "RENDER": false,
     "OUTPUT": "render2.avi",
@@ -23,5 +23,5 @@
     "FRAMES": 1000,
     "TEMP_OUTPUT": "frames",
     "KEEP_FRAMES": false,
-    "FULLSCREEN": true
+    "FULLSCREEN": false
 }
