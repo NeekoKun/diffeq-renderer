@@ -1,10 +1,10 @@
-import os
-import math
-import pygame
-import colorsys
-import random
-import json
 from attractor import Attractor
+import colorsys
+import pygame
+import random
+import math
+import json
+import os
 
 class Simulation:
     def __init__(self) -> None:
@@ -34,7 +34,7 @@ class Simulation:
         pygame.init()
         self.clock = pygame.time.Clock()
         if self.FULLSCREEN:
-            self.screen = pygame.display.set_mode(self.SIZE)#, pygame.FULLSCREEN)
+            self.screen = pygame.display.set_mode(self.SIZE , pygame.FULLSCREEN)
         else:
             self.screen = pygame.display.set_mode(self.SIZE)
         pygame.display.set_caption("Dynamic Attractor Simulation")
@@ -44,7 +44,7 @@ class Simulation:
         self.attractors = [Attractor(random.uniform(10, 30), random.uniform(-self.WIDTH/2, self.WIDTH/2), random.uniform(-self.HEIGHT/2, self.HEIGHT/2), random.choice([-1, 1])) for _ in range(self.ATTRACTORS)]
         self.attractors = []
         self.attractors.append(Attractor(20, -200, 0, 1))
-        self.attractors.append(Attractor(20, 200, 0, 1))
+        self.attractors.append(Attractor(20, 200, 0, -1))
         self.points = {i: [random.randint((-self.WIDTH - self.PADDING[0])//2, (self.WIDTH + self.PADDING[0])//2), random.randint((-self.HEIGHT - self.PADDING[1])//2, (self.HEIGHT + self.PADDING[1])//2)] for i in range(int((self.WIDTH + self.PADDING[0]) * (self.HEIGHT + self.PADDING[1]) / (self.DENSITY**2)))}
         self.point_histories = {key: [value] for key, value in self.points.items()}
         self.dimming_overlay = pygame.Surface(self.SIZE, pygame.SRCALPHA)
