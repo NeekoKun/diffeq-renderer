@@ -32,6 +32,7 @@ class Simulation:
             self.LIMIT_DISTANCE = settings["LIMIT_DISTANCE"]
             self.FULLSCREEN = settings["FULLSCREEN"]
             self.TRACE_RADIUS = settings["TRACE_RADIUS"]
+            self.SHOW_FPS = settings["SHOW_FPS"]
 
         # Initialize Pygame
         pygame.init()
@@ -57,8 +58,13 @@ class Simulation:
         self.traced_points = []
         self.deleted_traced_points = []
 
+        self.current_fps = 0
         self.will_remove = []
         self.will_stop_tracing = []
+
+        # Font
+        self.font = pygame.font.SysFont(u"Noto Sans Mono", 16)
+        self.fps_rect = pygame.Rect(0, 0, 50, 50)
 
     def differential(self, x: float, y: float) -> list[float]:
         dx, dy = 0, 0
@@ -166,11 +172,23 @@ class Simulation:
                     coors = pygame.mouse.get_pos()
                     self.traced_points.append([(coors[0]-self.WIDTH//2, coors[1]-self.HEIGHT//2)])
 
+
             self.screen.blit(self.dimming_overlay, (0, 0))
             self.update_point_histories()
             self.draw_lines()
+
+            if self.SHOW_FPS:
+                text = self.font.render(str(round(self.current_fps)).encode("utf-8"), True, [0, 255, 0])
+                self.fps_rect = text.get_rect()
+                temp_surface = pygame.Surface((self.fps_rect.width, self.fps_rect.height))
+                temp_surface.fill((0, 0, 0))
+                temp_surface.blit(text, (0, 0))
+                self.screen.blit(temp_surface, (self.WIDTH-self.fps_rect.width, 0))
+
             pygame.display.flip()
+            
             self.clock.tick(self.FPS)
+            self.current_fps = self.clock.get_fps()
 
         pygame.quit()
 

@@ -1,7 +1,7 @@
 {
-    "SIZE": [500, 500],
+    "SIZE": [1000, 1000],
     "DENSITY": 15,
-    "PADDING": [-100, -100],
+    "PADDING": [0, 0],
     "FPS": 60,
     "ATTRACTOR_COUNT": 5,
     "FADE": 1,
@@ -15,7 +15,7 @@
     "JULY_MODE": true,
     "RESPAWN_POINTS": true,
     "LIMIT_DISTANCE": true,
-    "MARGIN": [100, 100],
+    "MARGIN": [0, 0],
     "REMOVAL_RADIUS": 16,
     "RENDER": false,
     "OUTPUT": "render2.avi",
@@ -23,5 +23,6 @@
     "FRAMES": 1000,
     "TEMP_OUTPUT": "frames",
     "KEEP_FRAMES": false,
-    "FULLSCREEN": false
+    "FULLSCREEN": false,
+    "SHOW_FPS": true
 }
