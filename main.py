@@ -33,6 +33,7 @@ class Simulation:
             self.FULLSCREEN = settings["FULLSCREEN"]
             self.TRACE_RADIUS = settings["TRACE_RADIUS"]
             self.SHOW_FPS = settings["SHOW_FPS"]
+            self.SYSTEM_FONT_SIZE = settings["SYSTEM_FONT_SIZE"]
 
         # Initialize Pygame
         pygame.init()
@@ -63,7 +64,7 @@ class Simulation:
         self.will_stop_tracing = []
 
         # Font
-        self.font = pygame.font.SysFont(u"Noto Sans Mono", 16)
+        self.font = pygame.font.SysFont(u"Noto Sans Mono", self.SYSTEM_FONT_SIZE)
         self.fps_rect = pygame.Rect(0, 0, 50, 50)
 
     def differential(self, x: float, y: float) -> list[float]:
@@ -90,7 +91,6 @@ class Simulation:
 
         # Remove old traces
         for point in self.to_stop_tracing:
-            print(point)
             self.deleted_traced_points.append(point)
             self.traced_points.remove(point)
 

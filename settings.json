@@ -24,5 +24,6 @@
     "TEMP_OUTPUT": "frames",
     "KEEP_FRAMES": false,
     "FULLSCREEN": false,
-    "SHOW_FPS": true
+    "SHOW_FPS": true,
+    "SYSTEM_FONT_SIZE": 16
 }
