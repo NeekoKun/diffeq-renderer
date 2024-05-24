@@ -12,7 +12,7 @@
     "POINTS_COLOR": [100, 100, 220],
     "TRACE_COLOR": [255, 255, 255],
     "EXPIRED_TRACE_COLOR": [255, 220, 220],
-    "JULY_MODE": true,
+    "JULY_MODE": false,
     "RESPAWN_POINTS": true,
     "LIMIT_DISTANCE": true,
     "MARGIN": [0, 0],

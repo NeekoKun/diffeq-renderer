@@ -48,20 +48,25 @@ class Simulation:
         # Simulation settings
         self.attractors = [Attractor(random.uniform(10, 30), random.uniform(-self.WIDTH/2, self.WIDTH/2), random.uniform(-self.HEIGHT/2, self.HEIGHT/2), random.choice([-1, 1])) for _ in range(self.ATTRACTORS)]
         self.attractors = []
-        self.attractors.append(Attractor(20, -100, 100, 1))
-        self.attractors.append(Attractor(20, 100, 100, -1))
+        self.attractors.append(Attractor(20, -100, 100, -1))
         self.attractors.append(Attractor(20, -100, -100, -1))
+        self.attractors.append(Attractor(20, -100, 0, 1))
+        self.attractors.append(Attractor(20, 100, 0, -1))
+        self.attractors.append(Attractor(20, 100, 100, 1))
         self.attractors.append(Attractor(20, 100, -100, 1))
         self.points = {i: [random.randint(-(self.WIDTH + self.PADDING[0])//2, (self.WIDTH + self.PADDING[0])//2), random.randint(-(self.HEIGHT + self.PADDING[1])//2, (self.HEIGHT + self.PADDING[1])//2)] for i in range(int((self.WIDTH + self.PADDING[0]) * (self.HEIGHT + self.PADDING[1]) / (self.DENSITY**2)))}
         self.point_histories = {key: [value] for key, value in self.points.items()}
         self.dimming_overlay = pygame.Surface(self.SIZE, pygame.SRCALPHA)
         self.dimming_overlay.fill((self.BG_COLOR[0], self.BG_COLOR[1], self.BG_COLOR[2], self.FADE))
         self.traced_points = []
+        self.potential_points = []
         self.deleted_traced_points = []
+        self.deleted_potential_points = []
 
         self.current_fps = 0
         self.will_remove = []
         self.will_stop_tracing = []
+        self.will_stop_tracing_potential = []
 
         # Font
         self.font = pygame.font.SysFont(u"Noto Sans Mono", self.SYSTEM_FONT_SIZE)
@@ -76,23 +81,30 @@ class Simulation:
                 return None, None
             if distance_squared < self.REMOVAL_RADIUS**2:
                 if attractor.sign == -1:
-                    return 'collided', (attractor.x, attractor.y)  # Point is within the removal radius of an attractor, might as well count it in the middle to remove artifacts
+                    return 'collided', (attractor.x - x, attractor.y - y)  # Point is within the removal radius of an attractor, might as well count it in the middle to remove artifacts
             m = attractor.sign * attractor.q / (distance_squared + 1)
             dx += m * (x - attractor.x)
             dy += m * (y - attractor.y)
 
-        return 'ok', (x + self.K * dx, y + self.K * dy)
+        return 'ok', (self.K * dx, self.K * dy)
 
     def update_point_histories(self) -> None:
         self.to_remove = self.will_remove
         self.to_stop_tracing = self.will_stop_tracing
+        self.to_stop_tracing_potential = self.will_stop_tracing_potential
         self.will_remove = []
         self.will_stop_tracing = []
+        self.will_stop_tracing_potential = []
+        
 
         # Remove old traces
         for point in self.to_stop_tracing:
             self.deleted_traced_points.append(point)
             self.traced_points.remove(point)
+
+        for point in self.to_stop_tracing_potential:
+            self.deleted_potential_points.append(point)
+            self.potential_points.remove(point)
 
         # Remove the marked points
         for key in self.to_remove:
@@ -107,12 +119,16 @@ class Simulation:
                 del self.point_histories[key]
 
         for key, point in list(self.points.items()):
-            result, new_pos = self.differential(*point)
-            if (new_pos is None) or (self.LIMIT_DISTANCE and ((abs(new_pos[0]) > self.WIDTH/2 + self.MARGIN[0]) or (abs(new_pos[1]) > self.HEIGHT/2 + self.MARGIN[1]))):
+            result, d = self.differential(*point)
+            if d is None:
+                self.will_remove.append(key)
+                continue
+            new_pos = point[0] + d[0], point[1] + d[1]
+            if (self.LIMIT_DISTANCE and ((abs(new_pos[0]) > self.WIDTH/2 + self.MARGIN[0]) or (abs(new_pos[1]) > self.HEIGHT/2 + self.MARGIN[1]))):
                 # Mark the point for removal
                 self.will_remove.append(key)
             else:
-                if result is 'collided':
+                if result == 'collided':
                     self.will_remove.append(key)
                 # Append new position to history, ensuring history does not exceed specified length
                 if len(self.point_histories[key]) >= self.POINT_HISTORY:
@@ -120,9 +136,24 @@ class Simulation:
                 self.point_histories[key].append(new_pos)
                 self.points[key] = new_pos  # Update the main points dictionary
         
+        # Potential lines
+        for point in self.potential_points:
+            result, d = self.differential(*point[-1])
+            dx = d[1]
+            dy = -d[0]
+            new_pos = point[-1][0] + dx, point[-1][1] + dy
+            if (new_pos is None) or (self.LIMIT_DISTANCE and ((abs(new_pos[0]) > self.WIDTH/2 + self.MARGIN[0]) or (abs(new_pos[1]) > self.HEIGHT/2 + self.MARGIN[1]))):
+                self.to_stop_tracing.append(point)
+            else:
+                self.potential_points[self.potential_points.index(point)].append(new_pos)
+                if result == 'collided':
+                    self.will_stop_tracing_potential.append(point)
+                    self.will_stop_tracing_potential[-1].append(new_pos) 
+
         # Traced point
         for point in self.traced_points:
-            result, new_pos = self.differential(*point[-1])
+            result, (dx, dy) = self.differential(*point[-1])
+            new_pos = point[-1][0] + dx, point[-1][1] + dy
             if (new_pos is None) or (self.LIMIT_DISTANCE and ((abs(new_pos[0]) > self.WIDTH/2 + self.MARGIN[0]) or (abs(new_pos[1]) > self.HEIGHT/2 + self.MARGIN[1]))):
                 self.to_stop_tracing.append(point)
             else:
@@ -133,6 +164,8 @@ class Simulation:
                     
     def get_angle(self, start: list[float], end: list[float]) -> float:
         distance = math.sqrt((start[0] - end[0])**2 + (start[1] - end[1])**2)
+        if distance == 0:
+            return 0
 
         if end[0] > start[0]:
             a = 1 + (end[1] - start[1]) / distance
@@ -156,6 +189,11 @@ class Simulation:
             for i, _ in enumerate(point[1:]):
                 pygame.draw.line(self.screen, self.TRACE_COLOR, (int(point[i][0] + self.WIDTH//2), int(point[i][1] + self.HEIGHT//2)), (int(point[i+1][0] + self.WIDTH//2), int(point[i+1][1] + self.HEIGHT//2)), self.TRACE_RADIUS) # TODO: add simulation settings
 
+        for point in self.potential_points:
+            for i, _ in enumerate(point[1:]):
+                pygame.draw.line(self.screen, self.TRACE_COLOR, (int(point[i][0] + self.WIDTH//2), int(point[i][1] + self.HEIGHT//2)), (int(point[i+1][0] + self.WIDTH//2), int(point[i+1][1] + self.HEIGHT//2)), self.TRACE_RADIUS) # TODO: add simulation settings
+
+
         for point in self.deleted_traced_points:
             for i, _ in enumerate(point[1:]):
                 pygame.draw.line(self.screen, self.EXPIRED_TRACE_COLOR, (int(point[i][0] + self.WIDTH//2), int(point[i][1] + self.HEIGHT//2)), (int(point[i+1][0] + self.WIDTH//2), int(point[i+1][1] + self.HEIGHT//2)), self.TRACE_RADIUS) # TODO: add simulation settings
@@ -170,7 +208,10 @@ class Simulation:
                     running = False
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     coors = pygame.mouse.get_pos()
-                    self.traced_points.append([(coors[0]-self.WIDTH//2, coors[1]-self.HEIGHT//2)])
+                    if event.button == 1: # left click
+                        self.traced_points.append([(coors[0]-self.WIDTH//2, coors[1]-self.HEIGHT//2)])
+                    elif event.button == 3: # right click
+                        self.potential_points.append([(coors[0]-self.WIDTH//2, coors[1]-self.HEIGHT//2)])
 
 
             self.screen.blit(self.dimming_overlay, (0, 0))
